@@ -4,6 +4,25 @@ from bs4 import BeautifulSoup
 
 
 #command to create a raw file dd if=/dev/zero of=ubuntu16-04.raw bs=1 count=1 seek=15G
+# uuidgen to genrate UUID 
+
+
+#Constants
+
+BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
+
+#IMAGES_DIR = BASE_DIR+'images/'
+
+#DRIVE_DIR = BASE_DIR+'drives/'
+
+#ISO_DIR = BASE_DIR+'iso/'
+
+IMAGES_DIR = BASE_DIR
+
+DRIVE_DIR = BASE_DIR
+
+ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
+
 
 
 #XML COPY OF VM
@@ -62,12 +81,12 @@ vm_new_xml ='''<domain type='kvm'>
     <emulator>/usr/bin/kvm-spice</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='raw'/>
-      <source file='/home/admin-6019/Cloud-Assg/drives/ubuntu16-04.raw'/>
+      <source file=\''''+DRIVE_DIR+'''ubuntu16-04.raw\'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </disk>
     <disk type='file' device='cdrom'>
-		<source file='/home/admin-6019/Cloud-Assg/images/ubuntu-16.04-desktop-amd64.iso'/>
+		<source file=\''''+ISO_DIR+'''ubuntu-16.04-desktop-amd64.iso\'/>
 		<target dev='hdc' bus='ide'/>
 	</disk>
     <interface type='bridge'>
