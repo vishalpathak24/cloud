@@ -116,6 +116,63 @@ def createHDD(size):
     return Filename
   return -1
 
+def createNewVM(hd_size_gb,ram_size_gb,n_cores):
+  
+
+  #Generating Mac address of the system
+  mac = [0x52,0x54,0x00] #qemu mac start
+  mac = mac+ [
+              random.randint(0x00, 0xff),
+              random.randint(0x00, 0xff),
+              random.randint(0x00, 0xff)]
+  mac=':'.join(map(lambda x: "%02x" % x, mac))
+
+  #Generating UUID for system
+  x,UUID_str = commands.getstatusoutput("uuidgen")
+  if x != 0:
+    return -1
+
+  #Generating Hard Disk
+  HDD_name = createHDD(hd_size_gb)
+  if HDD_name == -1:
+    return -1
+
+  cur_xml = vm_new_xml
+
+  soup_xml = BeautifulSoup(cur_xml,"xml")
+
+  #Setting UUID
+  UUID = soup_xml.find('uuid')
+  UUID.string = UUID_str
+
+  #Setting MAC
+  MAC = soup_xml.find('mac')
+  MAC['address']=mac
+  
+  #Setting RAM
+  ram_kb = str(int(ram_size_gb)*1024*1024)
+  RAM = soup_xml.find('memory')
+  RAM.string = ram_kb
+
+  #Setting VCPU
+  VCPU = soup_xml.find('vcpu')
+  VCPU.string = str(n_cores)
+
+  #Setting disk location
+  Disk = soup_xml.find(device="disk")
+  Disk_source = Disk.find('source')
+  Disk_source['file'] = DRIVE_DIR+HDD_name
+
+  print soup_xml.prettify()
+  return 0
+
+
+
+
+createNewVM(10,1,1)
+
+
+'''
 
 conn = libvirt.open("qemu:///system")
 
@@ -192,3 +249,5 @@ createHDD(15)
 
 conn.close()
 sys.exit(0)
+
+'''
