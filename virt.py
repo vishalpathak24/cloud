@@ -5,6 +5,8 @@ import random
 import socket   #getting host name
 import commands
 import time
+from xml.etree import ElementTree
+
 
 #command to create a raw file dd if=/dev/zero of=ubuntu16-04.raw bs=1 count=1 seek=15G
 # uuidgen to genrate UUID 
@@ -12,7 +14,7 @@ import time
 
 #Constants
 
-BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
+BASE_DIR = '/home/vishalpathak/shared_nfs/'
 
 #IMAGES_DIR = BASE_DIR+'images/'
 
@@ -49,7 +51,7 @@ vm_xml = '''<domain type='kvm'>
     <emulator>/usr/bin/kvm-spice</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='/var/lib/libvirt/images/ubuntu16.04_2.qcow2'/>
+      <source file=\''''+IMAGES_DIR+'''ubuntu16.04.qcow2'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </disk>
@@ -202,23 +204,39 @@ def getStats(dom):
 	result={}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
 	result['vcpu_time']=vcpu_time
 	result['cpu_time']=cpu_time
+
+	# Memory stats
+	memory = dom.memoryStats()
+	result['actual_ram'] = memory['actual']
+	result['used_ram'] = memory['rss']
+
+	#Network load
+	tree = ElementTree.fromstring(dom.XMLDesc())
+	iface = tree.find('devices/interface/target').get('dev')
+	NL_1 = dom.interfaceStats(iface)
+	time.sleep(0.5)
+	NL_2 = dom.interfaceStats(iface)
+	result['upload_packet'] = NL_2[4] - NL_1[4]
+	result['download_packet'] = NL_2[0] - NL_1[0]
+
 	return result
 
-createNewVM.VMcount = 0
+#createNewVM.VMcount = 0
 
-dom=createNewVM(15,2,2)
+#dom=createNewVM(15,2,2)
 conn = libvirt.open("qemu:///system")
 
-dom = conn.lookupByName(dom)
+#dom = conn.lookupByName(dom)
 #dom1 = conn.lookupByName("INST_vishal-G560_0")
 #dom2 = conn.lookupByName("INST_vishal-G560_1")
-while True:
-	R1=getStats(dom)
+#while True:
+#	R1=getStats(dom1)
+#	print R1
 	#R2=getStats(dom2)
-	print "R1 share ",((R1['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
+	#print "R1 share ",((R1['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
 	#print "R2 share ",((R2['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
-	time.sleep(0.5)
-
+#	time.sleep(0.5)
+startVM(vm_xml)
 conn.close()
 
 '''
