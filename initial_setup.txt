@@ -1,0 +1,4 @@
+1) Password less ssh
+2) NFS to host
+3) br1 setup
+4) Shared Pool name Vishal_Pool

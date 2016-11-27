@@ -14,7 +14,9 @@ from xml.etree import ElementTree
 
 #Constants
 
-BASE_DIR = '/home/vishalpathak/shared_nfs/'
+USER_NAME = "admin-6019"
+POOL_NAME = "Vishal_pool"
+BASE_DIR = '/home/admin-6019/Vishal/nfs_share/'
 
 #IMAGES_DIR = BASE_DIR+'images/'
 
@@ -26,7 +28,7 @@ IMAGES_DIR = BASE_DIR
 
 DRIVE_DIR = BASE_DIR
 
-ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
+ISO_DIR = '/home/admin-6019/Vishal/nfs_share/'
 
 #Node specific variables
 VMcount = 0
@@ -221,100 +223,31 @@ def getStats(dom):
 
 	return result
 
-#createNewVM.VMcount = 0
+def migrate(dom_name,host_src,host_dest):
+	conn_src = libvirt.open("qemu+tcp://"+USER_NAME+"@"+host_src+"/system")
+	conn_dest = libvirt.open("qemu+tcp://"+USER_NAME+"@"+host_dest+"/system")
+	dom=conn_src.lookupByName(dom_name)
+	new_dom = dom.migrate(conn_dest,libvirt.VIR_MIGRATE_LIVE|libvirt.VIR_MIGRATE_UNSAFE,None,"tcp://"+host_dest,0)
+	conn_dest.close()
+	conn_src.close()
+	if new_dom == None:
+		print "Unable to Migrate"
+		return False
+	
+	return True
 
-#dom=createNewVM(15,2,2)
-conn = libvirt.open("qemu:///system")
+def getLocalPoolinfo():
+	conn = libvirt.open("qemu:///system")
+	pool = conn.storagePoolLookupByName(POOL_NAME)
+	info = pool.info()
+	result={}
+	result['Capacity']=info[1]
+	result['Allocation']=info[2]
+	result['Available']=info[3]
+	conn.close()
+	return result
 
-#dom = conn.lookupByName(dom)
-#dom1 = conn.lookupByName("INST_vishal-G560_0")
-#dom2 = conn.lookupByName("INST_vishal-G560_1")
-#while True:
-#	R1=getStats(dom1)
-#	print R1
-	#R2=getStats(dom2)
-	#print "R1 share ",((R1['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
-	#print "R2 share ",((R2['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
-#	time.sleep(0.5)
-startVM(vm_xml)
-conn.close()
-
-'''
-
-conn = libvirt.open("qemu:///system")
-
-if conn == None:
-	print "Unable to open hypervisor"
-	sys.exit(1)
-
-print "Sccess in connection"
-
-domainIDs = conn.listDomainsID()
-domainNames = conn.listDefinedDomains()
-
-if domainIDs == None:
-	print('Failed to get a list of domain IDs')
-	sys.exit(1)
-
-
-print("Active domain IDs:")
-if len(domainIDs) == 0:
-	print(' None')
-else:
-	for domainID in domainIDs:
-		print(' '+str(domainID))
-		domain=conn.lookupByID(domainID)
-		#Running Domain
-		print domain.name(),"OS type is",domain.OSType()
-		print "Has current snapshot",domain.hasCurrentSnapshot()
-		print "Has managed save image",domain.hasManagedSaveImage()
-		
-		state, maxmem, mem, cpus, cput = domain.info()
-		print('The state is ' + str(state))
-		print('The max memory is ' + str(maxmem))
-		print('The memory is ' + str(mem))
-		print('The number of cpus is ' + str(cpus))
-		print('The cpu time is ' + str(cput))
-
-
-print("All inactive domain names:")
-if len(domainNames) == 0:
-	print(' None')
-else:
-	for domainName in domainNames:
-		print(' '+domainName)
-
-
-print("Trying to create a domain")
-
-
-
-soup = BeautifulSoup(vm_new_xml,"xml")
-UUID = soup.find('uuid')
-
-#print "UUID tag is ",UUID.string
-UUID.string = "959345b3-1027-47d9-ad52-c6fd199167d3"
-
-print "*************\n"
-print str(soup)
-vm_new_xml = str(soup)
-
-#sys.exit(0)
-
-new_dom = conn.createXML(vm_new_xml,0)
-
-if new_dom == None:
-	print("Unable to create new domain")
-	sys.exit(1)
-
-print("Successfully created the required domain")
-
-print ("Creating Hardisk")
-
-createHDD(15)
-
-
-conn.close()
-sys.exit(0)
-
-'''
+def Hello()
+	print "Hello from virt"
+	return	
+createNewVM.VMcount = 0
