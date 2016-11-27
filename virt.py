@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import random
 import socket   #getting host name
 import commands
+import time
 
 #command to create a raw file dd if=/dev/zero of=ubuntu16-04.raw bs=1 count=1 seek=15G
 # uuidgen to genrate UUID 
@@ -11,7 +12,7 @@ import commands
 
 #Constants
 
-BASE_DIR = '/home/hdvishal/cloud-simulation/'
+BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
 #IMAGES_DIR = BASE_DIR+'images/'
 
@@ -23,9 +24,11 @@ IMAGES_DIR = BASE_DIR
 
 DRIVE_DIR = BASE_DIR
 
-ISO_DIR = '/home/hdvishal/cloud-simulation/'
+ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
 
-
+#Node specific variables
+VMcount = 0
+print VMcount
 
 #XML COPY OF VM
 vm_xml = '''<domain type='kvm'>
@@ -105,6 +108,8 @@ vm_new_xml ='''<domain type='kvm'>
   </devices>
 </domain>'''
 
+
+
 #function definations
 def createHDD(size):
   HD_id = random.randint(0,1000)
@@ -116,9 +121,15 @@ def createHDD(size):
     return Filename
   return -1
 
-def createNewVM(hd_size_gb,ram_size_gb,n_cores):
-  
+def startVM(xml):
+	conn = libvirt.open("qemu:///system")
+	if conn == None:
+		print "Unable to open hypervisor"
+		sys.exit(1)
+	new_dom = conn.createXML(xml,0)
+	conn.close()
 
+def createNewVM(hd_size_gb,ram_size_gb,n_cores):
   #Generating Mac address of the system
   mac = [0x52,0x54,0x00] #qemu mac start
   mac = mac+ [
@@ -141,6 +152,12 @@ def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 
   soup_xml = BeautifulSoup(cur_xml,"xml")
 
+  #Generating Name
+  PC_name = socket.gethostname()
+  virt_name = "INST_"+PC_name+"_"+str(createNewVM.VMcount)
+  NAME = soup_xml.find('name')
+  NAME.string = virt_name
+  
   #Setting UUID
   UUID = soup_xml.find('uuid')
   UUID.string = UUID_str
@@ -163,14 +180,46 @@ def createNewVM(hd_size_gb,ram_size_gb,n_cores):
   Disk_source = Disk.find('source')
   Disk_source['file'] = DRIVE_DIR+HDD_name
 
-  print soup_xml.prettify()
-  return 0
+  cur_xml = str(soup_xml)
 
+  startVM(cur_xml)																																																								
+  createNewVM.VMcount+=1;
+  return virt_name
 
+def getStats(dom):
+	#getting CPU Stats
+	stats = dom.getCPUStats(False)
+	vcpu_time = 0
+	cpu_time = 0
+	for stat in stats:
+		vcpu_time+=stat['vcpu_time']
+		cpu_time+=stat['cpu_time']
+	print "vcpu",vcpu_time
+	print "cpu_time",cpu_time,"\n"
+	per_cpu=((vcpu_time*100)/cpu_time)
+	print "CPU utilization is ",per_cpu,"%"
+	
+	result={}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
+	result['vcpu_time']=vcpu_time
+	result['cpu_time']=cpu_time
+	return result
 
+createNewVM.VMcount = 0
 
-createNewVM(10,1,1)
+dom=createNewVM(15,2,2)
+conn = libvirt.open("qemu:///system")
 
+dom = conn.lookupByName(dom)
+#dom1 = conn.lookupByName("INST_vishal-G560_0")
+#dom2 = conn.lookupByName("INST_vishal-G560_1")
+while True:
+	R1=getStats(dom)
+	#R2=getStats(dom2)
+	print "R1 share ",((R1['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
+	#print "R2 share ",((R2['cpu_time']*100)/(R1['cpu_time']+R2['cpu_time']))
+	time.sleep(0.5)
+
+conn.close()
 
 '''
 
