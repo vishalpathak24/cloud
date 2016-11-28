@@ -16,7 +16,8 @@ from xml.etree import ElementTree
 
 USER_NAME = "admin-6019"
 POOL_NAME = "Vishal_pool"
-BASE_DIR = '/home/admin-6019/Vishal/nfs_share/'
+#BASE_DIR = '/home/admin-6019/Vishal/nfs_share/'
+BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
 #IMAGES_DIR = BASE_DIR+'images/'
 
@@ -28,7 +29,8 @@ IMAGES_DIR = BASE_DIR
 
 DRIVE_DIR = BASE_DIR
 
-ISO_DIR = '/home/admin-6019/Vishal/nfs_share/'
+#ISO_DIR = '/home/admin-6019/Vishal/nfs_share/'
+ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
 
 #Node specific variables
 VMcount = 0
@@ -259,8 +261,21 @@ def getLocalDomainInfo():
 	conn.close()
 	return result
 
+
+def getActiveLocalDomainInfo():
+	conn = libvirt.open("qemu:///system")
+	result={}
+	ActiveDomain_IDs = conn.listDomainsID()
+	for Dom_id in ActiveDomain_IDs:
+		dom = conn.lookupByID(Dom_id)
+		dom_stat = getStats(dom)
+		result[dom.name()]=dom_stat
+
+	conn.close()
+	return result
+
 def Hello():
 	print "Hello from virt"
 	return	
 createNewVM.VMcount = 0
-print "Created from virt"
+#print "Created from virt"

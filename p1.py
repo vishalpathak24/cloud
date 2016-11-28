@@ -151,7 +151,19 @@ else:
 				nc_choice = NCchoice_greedy(activedom_state)
 				nc_choice_rank = rank+1+nc_choice
 				#TODO : make signals to NC for creating vm and correspoinding actions
-				
+				comm.send("createvm",dest=nc_choice_rank,tag=SIG_CTRL)
+
+				VMHDDsize=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+				VMNCPU=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+				VMRAM=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+
+				comm.send(VMHDDsize,dest=nc_choice_rank,tag=SIG_DATA)
+				comm.send(VMNCPU,dest=nc_choice_rank,tag=SIG_DATA)
+				comm.send(VMRAM,dest=nc_choice_rank,tag=SIG_DATA)
+
+				#Waiting for name of VM
+				virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+				comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
 					
 			elif command=="exit":
 				for nc in range(rank+1,rank+1+NODEPERCC):
@@ -178,6 +190,15 @@ else:
 				result = virt.getLocalDomainInfo()
 				#print result
 				comm.send(result,dest=ccRank,tag=SIG_CTRL)
+			elif command == "getactivedomaininfo":
+				result = virt.getActiveLocalDomainInfo()
+				comm.send(result,dest=ccRank,tag=SIG_CTRL)
+			elif command === "createvm" :
+				VMHDDsize=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
+				VMNCPU=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
+				VMRAM=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
+				virt_name=virt.createNewVM(VMHDDsize,VMRAM,VMNCPU)
+				comm.send(virt_name,dest=ccRank,tag=SIG_DATA)
 			elif command =="exit":
 				exit=True
 
