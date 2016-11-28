@@ -28,7 +28,7 @@ assert (size == (1 + 1*CCPERCLC + (1*CCPERCLC)*NODEPERCC)),"Number of process cr
 
 #Algorithm to schedule VMs
 
-def greedyAlgo(pool_result,actdom_result):
+def greedyAlgo(pool_result,actdom_result,VMHDDsize):
 	for i in range(0,CCPERCLC):
 		if pool_result[i]['Available'] >= VMHDDsize:
 			return i
@@ -37,13 +37,14 @@ def greedyAlgo(pool_result,actdom_result):
 def NCchoice_greedy(activedom_state):
 	if len(activedom_state) > 0:
 		min_busy = 0
-		for i in range(0,NODEPERCC+1):
+		#for i in range(0,NODEPERCC+1):
 			#if activedom_state[min_busy][]
 
 			#TODO: Code to access load on node
 
 	else:
 		return 0
+	return 0
 
 
 
@@ -94,7 +95,7 @@ if rank == CLC_RANK:
 			VMNCPU = input("Enter the number of cores you want should be <=4")
 			VMRAM = input("Eneter the RAM size you want in GB")
 			CC_choice = greedyAlgo(pool_result,actdom_result,VMHDDsize)
-			if CC_choice not -1:
+			if CC_choice != -1:
 				CC_choice_rank = 1+CC_choice*(NODEPERCC	+1)
 				comm.send("createvm",dest=CC_choice_rank,tag=SIG_CTRL)
 				comm.send(VMHDDsize,dest=CC_choice_rank,tag=SIG_DATA)
@@ -140,7 +141,7 @@ else:
 				
 				#Assesing Current Situation of NC
 				for nc in range(rank+1,rank+1+NODEPERCC):
-					com.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
+					comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
 				
 				i=0
 				for nc in range(rank+1,rank+1+NODEPERCC):
@@ -193,7 +194,7 @@ else:
 			elif command == "getactivedomaininfo":
 				result = virt.getActiveLocalDomainInfo()
 				comm.send(result,dest=ccRank,tag=SIG_CTRL)
-			elif command === "createvm" :
+			elif command == "createvm" :
 				VMHDDsize=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
 				VMNCPU=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
 				VMRAM=comm.recv(source=ccRank,tag=SIG_DATA,status=status)

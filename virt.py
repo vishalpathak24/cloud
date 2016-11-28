@@ -15,7 +15,9 @@ from xml.etree import ElementTree
 #Constants
 
 USER_NAME = "admin-6019"
-POOL_NAME = "Vishal_pool"
+#POOL_NAME = "Vishal_pool"
+POOL_NAME = "default"
+
 #BASE_DIR = '/home/admin-6019/Vishal/nfs_share/'
 BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
