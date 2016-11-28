@@ -236,18 +236,31 @@ def migrate(dom_name,host_src,host_dest):
 	
 	return True
 
-def getLocalPoolinfo():
+def getLocalPoolInfo():
 	conn = libvirt.open("qemu:///system")
 	pool = conn.storagePoolLookupByName(POOL_NAME)
 	info = pool.info()
 	result={}
-	result['Capacity']=info[1]
-	result['Allocation']=info[2]
-	result['Available']=info[3]
+	result['Capacity']=info[1]/(1024*1024*1024)
+	result['Allocation']=info[2]/(1024*1024*1024)
+	result['Available']=info[3]/(1024*1024*1024)
 	conn.close()
 	return result
 
-def Hello()
+def getLocalDomainInfo():
+	conn = libvirt.open("qemu:///system")
+	result={}
+	ActiveDomain_IDs = conn.listDomainsID()
+	for Dom_id in ActiveDomain_IDs:
+		dom = conn.lookupByID(Dom_id)
+		dom_stat = getStats(dom)
+		result[dom.name()+"--Active"]=dom_stat
+
+	conn.close()
+	return result
+
+def Hello():
 	print "Hello from virt"
 	return	
 createNewVM.VMcount = 0
+print "Created from virt"
