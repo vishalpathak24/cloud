@@ -1,6 +1,8 @@
 from mpi4py import MPI
 import logging
 import virt
+import operator
+
 
 #IMPORTANT PROGRAM SETTINGS
 
@@ -35,15 +37,23 @@ def greedyAlgo(pool_result,actdom_result,VMHDDsize):
 	return -1
 
 def NCchoice_greedy(activedom_state):
+	
 	if len(activedom_state) > 0:
 		min_busy = 0
-		#for i in range(0,NODEPERCC+1):
-			#if activedom_state[min_busy][]
+		"""
+		for i in range(0,NODEPERCC+1):
+			if activedom_state[i] >= activedom_state[min_busy]:
+				min_busy = i
+		"""
+		min_busy=max(activedom_state.iteritems(), key=operator.itemgetter(1))[0]
+		
+		print(min_busy)
 
-			#TODO: Code to access load on node
+		return min_busy	
 
 	else:
 		return 0
+	
 	return 0
 
 
