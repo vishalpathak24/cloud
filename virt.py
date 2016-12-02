@@ -1,5 +1,6 @@
 import libvirt
 import sys
+import logging
 from bs4 import BeautifulSoup
 import random
 import socket   #getting host name
@@ -15,10 +16,10 @@ from xml.etree import ElementTree
 #Constants
 
 USER_NAME = "admin-6019"
-POOL_NAME = "Vishal_pool"
+POOL_NAME = "default-cloud"
 #POOL_NAME = "default"
 
-BASE_DIR = '/home/admin-6019/Vishal/nfs_share/'
+BASE_DIR = '/home/admin-6019/nfs_share/'
 #BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
 #IMAGES_DIR = BASE_DIR+'images/'
@@ -31,12 +32,12 @@ IMAGES_DIR = BASE_DIR
 
 DRIVE_DIR = BASE_DIR
 
-ISO_DIR = '/home/admin-6019/Vishal/nfs_share/'
+ISO_DIR = '/home/admin-6019/nfs_share/'
 #ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
 
 #Node specific variables
 VMcount = 0
-print VMcount
+#print VMcount
 
 #XML COPY OF VM
 vm_xml = '''<domain type='kvm'>
@@ -125,6 +126,8 @@ def createHDD(size):
 	Filename = "HDD_"+PC_name+"_"+str(HD_id)+".raw"
 	Command_String = """dd if=/dev/zero of="""+DRIVE_DIR+"/"+Filename+""" bs=1 count=1 seek="""+str(size)+"G"
 	x,y=commands.getstatusoutput(Command_String)
+	Command_String = """chmod 777 """+DRIVE_DIR+"/"+Filename
+	x,y=commands.getstatusoutput(Command_String)
 	if x==0:
 		return Filename
 	return -1
@@ -132,7 +135,7 @@ def createHDD(size):
 def startVM(xml):
 	conn = libvirt.open("qemu:///system")
 	if conn == None:
-		print "Unable to open hypervisor"
+		logging.info("Unable to open hypervisor")
 		sys.exit(1)
 	new_dom = conn.createXML(xml,0)
 	conn.close()
@@ -202,10 +205,10 @@ def getStats(dom):
 	for stat in stats:
 		vcpu_time+=stat['vcpu_time']
 		cpu_time+=stat['cpu_time']
-	print "vcpu",vcpu_time
-	print "cpu_time",cpu_time,"\n"
+	logging.info( "vcpu",vcpu_time)
+	logging.info("cpu_time",cpu_time,"\n")
 	per_cpu=((vcpu_time*100)/cpu_time)
-	print "CPU utilization is ",per_cpu,"%"
+	logging.info("CPU utilization is ",per_cpu,"%")
 	
 	result={}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
 	result['vcpu_time']=vcpu_time
@@ -235,12 +238,13 @@ def migrate(dom_name,host_src,host_dest):
 	conn_dest.close()
 	conn_src.close()
 	if new_dom == None:
-		print "Unable to Migrate"
+		logging.info( "Unable to Migrate")
 		return False
 	
 	return True
 
 def getLocalPoolInfo():
+	logging.info("local Pool info")
 	conn = libvirt.open("qemu:///system")
 	pool = conn.storagePoolLookupByName(POOL_NAME)
 	info = pool.info()
@@ -285,7 +289,7 @@ def getActiveLocalDomainInfo():
 	return result
 
 def Hello():
-	print "Hello from virt"
+	logging.info("Hello from virt")
 	return	
 createNewVM.VMcount = 0
 #print "Created from virt"
