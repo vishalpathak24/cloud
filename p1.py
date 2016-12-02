@@ -68,7 +68,7 @@ for i in range(0,NODEPERCC):
 print CC_ranks
 if rank == CLC_RANK:
 	#key: CC rank ,value :list of VMS
-	CCnames = {:[]}
+	CCnames = {}
 	logging.info("I AM CLOUD CONTROLLER"+socket.gethostname())
 	print "I AM CLOUD CONTROLLER"
 	exit=False
@@ -125,8 +125,14 @@ if rank == CLC_RANK:
 				comm.send(VMRAM,dest=CC_choice_rank,tag=SIG_DATA)
 				print "waiting for creation of vm"
 				status = MPI.Status()
+				
 				new_vm_name = comm.recv(source=CC_choice_rank,tag=SIG_DATA,status=status)
+
+				if CC_choice_rank not in CCnames:
+						CCnames[CC_choice_rank] = []
+				
 				CCnames[CC_choice_rank].append(new_vm_name)
+				
 				print "New VM created with Name ",new_vm_name
 
 			else:
@@ -141,7 +147,7 @@ else:
 	if rank%(NODEPERCC+1) == 1:
 		logging.info("I AM CLUSTER CONTROLLER"+socket.gethostname())
 		#key : NC rank ,value :list of VMS
-		NCVMList={:[]}
+		NCVMList={}
 		exit=False
 		status = MPI.Status()
 		while not exit:
@@ -194,7 +200,12 @@ else:
 
 					#Waiting for name of VM
 					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+					
+					if nc_choice_rank not in NCVMList:
+						NCVMList[nc_choice_rank] = []
+				
 					NCVMList[nc_choice_rank].append(virt_name)
+
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
 						
 				elif command=="exit":
@@ -203,9 +214,26 @@ else:
 						exit=True
 			else:
 				#logging.info("Nothing to do here")
+				
 				#Finding state of NCs
 				for nc in range(rank+1,rank+1+NODEPERCC):
-					comm.send("")
+					comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
+				activedom_state={}
+				
+				i=0
+				for nc in range(rank+1,rank+1+NODEPERCC):
+					result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
+					activedom_state[i] = result_nc
+				i=i+1
+
+				#Algo for finding if VM-Scaling is needed
+				for nc in activedom_state:
+					print activedom_state
+					#for dom in activedom_state[nc]:
+					#	print "PRINTING STATES"
+					#	print dom
+
+				#Algo if migration is needed
 				time.sleep(0.5)
 
 	else:

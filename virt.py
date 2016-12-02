@@ -200,34 +200,48 @@ def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 def getStats(dom):
 	#getting CPU Stats
 	stats = dom.getCPUStats(False)
-	vcpu_time = 0
-	cpu_time = 0
-	for stat in stats:
-		vcpu_time+=stat['vcpu_time']
-		cpu_time+=stat['cpu_time']
-	logging.info( "vcpu",vcpu_time)
-	logging.info("cpu_time",cpu_time,"\n")
-	per_cpu=((vcpu_time*100)/cpu_time)
-	logging.info("CPU utilization is ",per_cpu,"%")
-	
-	result={}																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
-	result['vcpu_time']=vcpu_time
-	result['cpu_time']=cpu_time
+	result={}
+	if len(stats) > 0:
+		vcpu_time = 0
+		cpu_time = 0
+		
+		for stat in stats:
+			cpu_time+=stat['cpu_time']
+			if 'vcpu_time' in stat: #Not available for newly created VMs
+				vcpu_time+=stat['vcpu_time']
+			
+		logging.info( "vcpu"+str(vcpu_time))
+		logging.info("cpu_time"+str(cpu_time)+"\n")
+		
+		if cpu_time !=0:
+			per_cpu=((vcpu_time*100)/cpu_time)
+			logging.info("CPU utilization is "+str(per_cpu)+"%")
+		
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
+		result['vcpu_time']=vcpu_time
+		result['cpu_time']=cpu_time
 
-	# Memory stats
-	memory = dom.memoryStats()
-	result['actual_ram'] = memory['actual']
-	result['used_ram'] = memory['rss']
+		# Memory stats
+		memory = dom.memoryStats()
+		result['actual_ram'] = memory['actual']
+		result['used_ram'] = memory['rss']
 
-	#Network load
-	tree = ElementTree.fromstring(dom.XMLDesc())
-	iface = tree.find('devices/interface/target').get('dev')
-	NL_1 = dom.interfaceStats(iface)
-	time.sleep(0.5)
-	NL_2 = dom.interfaceStats(iface)
-	result['upload_packet'] = NL_2[4] - NL_1[4]
-	result['download_packet'] = NL_2[0] - NL_1[0]
-
+		#Network load
+		tree = ElementTree.fromstring(dom.XMLDesc())
+		iface = tree.find('devices/interface/target').get('dev')
+		NL_1 = dom.interfaceStats(iface)
+		time.sleep(0.5)
+		NL_2 = dom.interfaceStats(iface)
+		result['upload_packet'] = NL_2[4] - NL_1[4]
+		result['download_packet'] = NL_2[0] - NL_1[0]
+	else:
+		#Domain newly created unable to get stats for now																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																
+		result['vcpu_time']=0
+		result['cpu_time']=0
+		result['actual_ram'] = 0
+		result['used_ram'] = 0
+		result['upload_packet'] = 0
+		result['download_packet'] = 0
 	return result
 
 def migrate(dom_name,host_src,host_dest):
@@ -283,6 +297,7 @@ def getActiveLocalDomainInfo():
 	ActiveDomain_IDs = conn.listDomainsID()
 	for Dom_id in ActiveDomain_IDs:
 		dom = conn.lookupByID(Dom_id)
+		logging.info("Finding info for domain"+dom.name())
 		dom_stat = getStats(dom)
 		result[dom.name()]=dom_stat
 	
