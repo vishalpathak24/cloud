@@ -3,6 +3,7 @@ import logging
 import virt
 import operator
 import socket
+import time
 
 #IMPORTANT PROGRAM SETTINGS
 
@@ -103,12 +104,15 @@ if rank == CLC_RANK:
 				logging.info("Sent Data")
 				actdom_result[i]=comm.recv(source=cc,tag=SIG_CTRL,status=status)
 				i=i+1
-				logging.info("IN CC ",i,actdom_result[i-1])
+				print "IN CC ",i,actdom_result[i-1]
 		
 		elif choice == 2:
-			VMHDDsize = input("Enter the size of disk you want in GB")
-			VMNCPU = input("Enter the number of cores you want should be <=4")
-			VMRAM = input("Eneter the RAM size you want in GB")
+			print "Enter the size of disk you want in GB"
+			VMHDDsize = input()
+			print "Enter the number of cores you want should be <=4"
+			VMNCPU = input()
+			print "Eneter the RAM size you want in GB"
+			VMRAM = input()
 			CC_choice = greedyAlgo(pool_result,actdom_result,VMHDDsize)
 			if CC_choice != -1:
 				CC_choice_rank = 1+CC_choice*(NODEPERCC	+1)
@@ -116,10 +120,10 @@ if rank == CLC_RANK:
 				comm.send(VMHDDsize,dest=CC_choice_rank,tag=SIG_DATA)
 				comm.send(VMNCPU,dest=CC_choice_rank,tag=SIG_DATA)
 				comm.send(VMRAM,dest=CC_choice_rank,tag=SIG_DATA)
-				logging.info("waiting for creation of vm")
+				print "waiting for creation of vm"
 				status = MPI.Status()
 				new_vm_name = comm.recv(source=CC_choice_rank,tag=SIG_DATA,status=status)
-				logging.info("New VM created with Name ",new_vm_name)
+				print "New VM created with Name ",new_vm_name
 
 			else:
 				logging.info("Unable to find CC for given choice")
@@ -135,58 +139,64 @@ else:
 		exit=False
 		status = MPI.Status()
 		while not exit:
-			command=comm.recv(source=MPI.ANY_SOURCE,tag=SIG_CTRL,status=status)
 			
-			if command=="getpoolinfo":
-				logging.info("GOT POOL INFO")
-				result = virt.getLocalPoolInfo()
-				logging.info("Sending Pool info")
-				comm.send(result,dest=status.Get_source(),tag=SIG_CTRL)
-			
-			elif command =="getdomaininfo":
-				result={}
-				for nc in range(rank+1,rank+1+NODEPERCC):
-					comm.send("getdomaininfo",dest=nc,tag=SIG_CTRL)
-				for nc in range(rank+1,rank+1+NODEPERCC):
-					result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
-					for dom in result_nc:
-						result[dom]=result_nc[dom]
-				comm.send(result,dest=CLC_RANK,tag=SIG_CTRL)		
+			if comm.Iprobe(source=CLC_RANK,tag=SIG_CTRL):
 
-			elif command=="createvm":
-				activedom_state={}
+				command=comm.recv(source=CLC_RANK,tag=SIG_CTRL,status=status)
 				
-				#Assesing Current Situation of NC
-				for nc in range(rank+1,rank+1+NODEPERCC):
-					comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
+				if command=="getpoolinfo":
+					logging.info("GOT POOL INFO")
+					result = virt.getLocalPoolInfo()
+					logging.info("Sending Pool info")
+					comm.send(result,dest=status.Get_source(),tag=SIG_CTRL)
 				
-				i=0
-				for nc in range(rank+1,rank+1+NODEPERCC):
-					result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
-					activedom_state[i] = result_nc
-					i=i+1
+				elif command =="getdomaininfo":
+					result={}
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						comm.send("getdomaininfo",dest=nc,tag=SIG_CTRL)
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
+						for dom in result_nc:
+							result[dom]=result_nc[dom]
+					comm.send(result,dest=CLC_RANK,tag=SIG_CTRL)		
 
-				nc_choice = NCchoice_greedy(activedom_state)
-				nc_choice_rank = rank+1+nc_choice
-				#TODO : make signals to NC for creating vm and correspoinding actions
-				comm.send("createvm",dest=nc_choice_rank,tag=SIG_CTRL)
-
-				VMHDDsize=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
-				VMNCPU=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
-				VMRAM=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
-
-				comm.send(VMHDDsize,dest=nc_choice_rank,tag=SIG_DATA)
-				comm.send(VMNCPU,dest=nc_choice_rank,tag=SIG_DATA)
-				comm.send(VMRAM,dest=nc_choice_rank,tag=SIG_DATA)
-
-				#Waiting for name of VM
-				virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
-				comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
+				elif command=="createvm":
+					activedom_state={}
 					
-			elif command=="exit":
-				for nc in range(rank+1,rank+1+NODEPERCC):
-					comm.send("exit",dest=nc,tag=SIG_CTRL)
-					exit=True
+					#Assesing Current Situation of NC
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
+					
+					i=0
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
+						activedom_state[i] = result_nc
+						i=i+1
+
+					nc_choice = NCchoice_greedy(activedom_state)
+					nc_choice_rank = rank+1+nc_choice
+					#TODO : make signals to NC for creating vm and correspoinding actions
+					comm.send("createvm",dest=nc_choice_rank,tag=SIG_CTRL)
+
+					VMHDDsize=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+					VMNCPU=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+					VMRAM=comm.recv(source=CLC_RANK,tag=SIG_DATA,status=status)
+
+					comm.send(VMHDDsize,dest=nc_choice_rank,tag=SIG_DATA)
+					comm.send(VMNCPU,dest=nc_choice_rank,tag=SIG_DATA)
+					comm.send(VMRAM,dest=nc_choice_rank,tag=SIG_DATA)
+
+					#Waiting for name of VM
+					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
+						
+				elif command=="exit":
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						comm.send("exit",dest=nc,tag=SIG_CTRL)
+						exit=True
+			else:
+				logging.info("Nothing to do here")
+				time.sleep(0.5)
 
 	else:
 		logging.info("I AM NODE CONTROLLER"+socket.gethostname())
