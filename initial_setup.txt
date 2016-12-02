@@ -2,3 +2,6 @@
 2) NFS to host
 3) br1 setup
 4) Shared Pool name Vishal_Pool
+
+Command 
+mpiexec --mca btl_tcp_if_include br1 -n 7 python p1.py
