@@ -267,24 +267,25 @@ def getLocalDomainInfo():
 	conn.close()
 	return result
 
+def getLocalMemoryInfo():
+	conn = libvirt.open("qemu:///system")
+
+	mem_stats = conn.getFreeMemory()
+	result = mem_stats
+
+	conn.close()
+	return result
 
 def getActiveLocalDomainInfo():
 	conn = libvirt.open("qemu:///system")
-	"""
+	
 	result={}
 	ActiveDomain_IDs = conn.listDomainsID()
 	for Dom_id in ActiveDomain_IDs:
 		dom = conn.lookupByID(Dom_id)
 		dom_stat = getStats(dom)
 		result[dom.name()]=dom_stat
-	"""
-	mem_stats = conn.getFreeMemory()
-	result = mem_stats
-
-	#print("CPU" + str(cpu_stats))
-	#print("Memory " + str(mem_stats))
-
-
+	
 	conn.close()
 	return result
 

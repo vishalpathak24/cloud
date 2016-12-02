@@ -62,10 +62,13 @@ def NCchoice_greedy(activedom_state):
 
 #Creating NC rank list
 CC_ranks = []
+
 for i in range(0,NODEPERCC):
 	CC_ranks.append(1+i*(CCPERCLC+1))
 print CC_ranks
 if rank == CLC_RANK:
+	#key: CC rank ,value :list of VMS
+	CCnames = {:[]}
 	logging.info("I AM CLOUD CONTROLLER"+socket.gethostname())
 	print "I AM CLOUD CONTROLLER"
 	exit=False
@@ -123,6 +126,7 @@ if rank == CLC_RANK:
 				print "waiting for creation of vm"
 				status = MPI.Status()
 				new_vm_name = comm.recv(source=CC_choice_rank,tag=SIG_DATA,status=status)
+				CCnames[CC_choice_rank].append(new_vm_name)
 				print "New VM created with Name ",new_vm_name
 
 			else:
@@ -136,6 +140,8 @@ if rank == CLC_RANK:
 else:
 	if rank%(NODEPERCC+1) == 1:
 		logging.info("I AM CLUSTER CONTROLLER"+socket.gethostname())
+		#key : NC rank ,value :list of VMS
+		NCVMList={:[]}
 		exit=False
 		status = MPI.Status()
 		while not exit:
@@ -165,7 +171,7 @@ else:
 					
 					#Assesing Current Situation of NC
 					for nc in range(rank+1,rank+1+NODEPERCC):
-						comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
+						comm.send("getlocalmemoryinfo",dest=nc,tag=SIG_CTRL)
 					
 					i=0
 					for nc in range(rank+1,rank+1+NODEPERCC):
@@ -188,6 +194,7 @@ else:
 
 					#Waiting for name of VM
 					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+					NCVMList[nc_choice_rank].append(virt_name)
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
 						
 				elif command=="exit":
@@ -195,7 +202,10 @@ else:
 						comm.send("exit",dest=nc,tag=SIG_CTRL)
 						exit=True
 			else:
-				logging.info("Nothing to do here")
+				#logging.info("Nothing to do here")
+				#Finding state of NCs
+				for nc in range(rank+1,rank+1+NODEPERCC):
+					comm.send("")
 				time.sleep(0.5)
 
 	else:
@@ -220,6 +230,9 @@ else:
 				comm.send(result,dest=ccRank,tag=SIG_CTRL)
 			elif command == "getactivedomaininfo":
 				result = virt.getActiveLocalDomainInfo()
+				comm.send(result,dest=ccRank,tag=SIG_CTRL)
+			elif command == "getlocalmemoryinfo":
+				result = virt.getLocalMemoryInfo()
 				comm.send(result,dest=ccRank,tag=SIG_CTRL)
 			elif command == "createvm" :
 				VMHDDsize=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
