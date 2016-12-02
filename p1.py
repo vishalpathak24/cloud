@@ -230,11 +230,11 @@ else:
 				for nc in activedom_state:
 					#print activedom_state
 					for dom in activedom_state[nc]:
-						print "PRINTING STATES"
-						print dom
-						print activedom_state[nc][dom]
+						#print "PRINTING STATES"
+						#print dom
+						#print activedom_state[nc][dom]
 						#Check the network traffic of VMs
-						
+
 				#Algo if migration is needed
 				time.sleep(0.5)
 

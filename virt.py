@@ -308,4 +308,4 @@ def Hello():
 	logging.info("Hello from virt")
 	return	
 createNewVM.VMcount = 0
-#print "Created from virt"
+print "Created from virt"
