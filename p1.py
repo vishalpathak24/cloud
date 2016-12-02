@@ -19,7 +19,7 @@ CLC_RANK = 0
 #SIGNALS
 SIG_CTRL = 0
 SIG_DATA = 1
-
+SIG_SAVE = 2
 
 #CODE BEGIN
 comm = MPI.COMM_WORLD
@@ -92,6 +92,7 @@ if rank == CLC_RANK:
 		print "1. Print Domains"
 		print "2. Create VM"
 		print "3. Exit"
+		print "4. Save"
 
 		#MENE OF CLC END
 		print "Enter Your choice"
@@ -128,10 +129,7 @@ if rank == CLC_RANK:
 				
 				new_vm_name = comm.recv(source=CC_choice_rank,tag=SIG_DATA,status=status)
 
-				if CC_choice_rank not in CCnames:
-						CCnames[CC_choice_rank] = []
-				
-				CCnames[CC_choice_rank].append(new_vm_name)
+				CCnames[new_vm_name]=CC_choice_rank
 				
 				print "New VM created with Name ",new_vm_name
 
@@ -142,6 +140,17 @@ if rank == CLC_RANK:
 			for cc in CC_ranks:
 				comm.send("exit",dest=cc,tag=SIG_CTRL)
 			exit=True
+		
+		elif choice == 4:
+			print CCnames
+			print "Enter the Cluster controller rank containing your VM " 
+			CC_rank = input()
+			print "Enter the vmname"
+			vmname = raw_input()
+			comm.send("SaveVM",dest=CC_rank,tag=SIG_CTRL)
+			comm.send(vmname,dest=CC_rank,tag=SIG_SAVE)
+			print "waiting for cluster controller to save VM "
+			status= MPI.Status()
 
 else:
 	if rank%(NODEPERCC+1) == 1:
@@ -201,13 +210,20 @@ else:
 					#Waiting for name of VM
 					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
 					
-					if nc_choice_rank not in NCVMList:
-						NCVMList[nc_choice_rank] = []
 				
-					NCVMList[nc_choice_rank].append(virt_name)
+					NCVMList[virt_name]=nc_choice_rank
 
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
-						
+				
+				elif command=="SaveVM" :
+					print "in saveVM"
+					print NCVMList
+					vmname = comm.recv(source=CLC_RANK,tag=SIG_SAVE,status=status)
+					NC_rank= NCVMList[vmname]
+					comm.send("SaveVM",dest=NC_rank,tag=SIG_CTRL)
+					comm.send(vmname,dest=NC_rank,tag=SIG_SAVE)
+					print "waiting for Node controller to save VM "
+					status= MPI.Status()		
 				elif command=="exit":
 					for nc in range(rank+1,rank+1+NODEPERCC):
 						comm.send("exit",dest=nc,tag=SIG_CTRL)
@@ -224,7 +240,7 @@ else:
 				for nc in range(rank+1,rank+1+NODEPERCC):
 					result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
 					activedom_state[i] = result_nc
-				i=i+1
+					i=i+1
 
 				#Algo for finding if VM-Scaling is needed
 				for nc in activedom_state:
@@ -232,7 +248,7 @@ else:
 					for dom in activedom_state[nc]:
 						#print "PRINTING STATES"
 						#print dom
-						#print activedom_state[nc][dom]
+						print activedom_state[nc][dom]
 						#Check the network traffic of VMs
 
 				#Algo if migration is needed
@@ -270,6 +286,10 @@ else:
 				VMRAM=comm.recv(source=ccRank,tag=SIG_DATA,status=status)
 				virt_name=virt.createNewVM(VMHDDsize,VMRAM,VMNCPU)
 				comm.send(virt_name,dest=ccRank,tag=SIG_DATA)
+			elif command == "SaveVM" :
+				VMname=comm.recv(source=ccRank,tag=SIG_SAVE,status=status)
+				virt.SaveVM(VMname)
+
 			elif command =="exit":
 				exit=True
 

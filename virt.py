@@ -12,7 +12,7 @@ from xml.etree import ElementTree
 #command to create a raw file dd if=/dev/zero of=ubuntu16-04.raw bs=1 count=1 seek=15G
 # uuidgen to genrate UUID 
 
-
+filename='/home/admin-6019/Documents/image.img'
 #Constants
 
 USER_NAME = "admin-6019"
@@ -139,6 +139,29 @@ def startVM(xml):
 		sys.exit(1)
 	new_dom = conn.createXML(xml,0)
 	conn.close()
+
+def SaveVM(VMname) :
+	conn = libvirt.open('qemu:///system')
+	if conn == None:
+		print('Failed to open connection to qemu:///system')
+		exit(1)
+	dom = conn.lookupByName(VMname)
+	if dom == None:
+		print('Cannot find guest to be saved.')
+		exit(1)
+	#info = dom.info()
+	#if info == None:
+	#	print('Cannot check guest state')
+	#	exit(1)
+	#if info.state == VIR_DOMAIN_SHUTOFF:
+	#	print('Not saving guest that is not running')
+	#	exit(1)
+	if dom.save(filename) < 0:
+		print('Unable to save guest to '+str(filename))
+	print('Guest state saved to '+str(filename))
+	conn.close()
+	exit(0)
+
 
 def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 	#Generating Mac address of the system
