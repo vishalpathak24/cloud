@@ -188,7 +188,8 @@ def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 
 	#Generating Name
 	PC_name = socket.gethostname()
-	virt_name = "INST_"+PC_name+"_"+str(createNewVM.VMcount)
+	
+	virt_name = "INST_"+PC_name+"_"+str(random.randint(0,1000))
 	NAME = soup_xml.find('name')
 	NAME.string = virt_name
 	

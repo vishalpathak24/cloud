@@ -57,7 +57,52 @@ def NCchoice_greedy(activedom_state):
 		return 0
 	
 	return 0
+def NCchoice_match_making(activedom_state):
+	
+	if len(activedom_state) > 0:
+		min_busy = 0
+		"""
+		for i in range(0,NODEPERCC+1):
+			if activedom_state[i] >= activedom_state[min_busy]:
+				min_busy = i
+		"""
+		cpu_freq=1000
+		free_memory=2
+		ranking_expression=cpu_freq*free_memory
+		
+		min_busy=max(activedom_state.iteritems(), key=operator.itemgetter(1))[0]
+		
+		print(min_busy)
 
+		return min_busy	
+
+	else:
+		return 0
+	
+	return 0
+
+def NCchoice_round_robbin():
+	
+	if len(activedom_state) > 0:
+		min_busy = 0
+		"""
+		for i in range(0,NODEPERCC+1):
+			if activedom_state[i] >= activedom_state[min_busy]:
+				min_busy = i
+		"""
+		if not hasattr(NCchoice_round_robbin, "count"):
+			NCchoice_round_robbin.count = 0  # it doesn't exist yet, so initialize it
+		NCchoice_round_robbin.count += 1
+		print(NCchoice_round_robbin.count)		
+		
+		
+
+		return NCchoice_round_robbin.count%2	
+
+	else:
+		return 0
+	
+	return 0
 
 
 #Creating NC rank list
