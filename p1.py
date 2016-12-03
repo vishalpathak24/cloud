@@ -20,6 +20,7 @@ CLC_RANK = 0
 SIG_CTRL = 0
 SIG_DATA = 1
 SIG_SAVE = 2
+SIG_RESTORE=3
 
 #CODE BEGIN
 comm = MPI.COMM_WORLD
@@ -93,6 +94,7 @@ if rank == CLC_RANK:
 		print "2. Create VM"
 		print "3. Exit"
 		print "4. Save"
+		print "5. Restore"
 
 		#MENE OF CLC END
 		print "Enter Your choice"
@@ -150,6 +152,17 @@ if rank == CLC_RANK:
 			comm.send("SaveVM",dest=CC_rank,tag=SIG_CTRL)
 			comm.send(vmname,dest=CC_rank,tag=SIG_SAVE)
 			print "waiting for cluster controller to save VM "
+			status= MPI.Status()
+
+		elif choice == 5:
+			print CCnames
+			print "Enter the Cluster controller rank containing your VM " 
+			CC_rank = input()
+			print "Enter the vmname"
+			vmname = raw_input()
+			comm.send("RestoreVM",dest=CC_rank,tag=SIG_CTRL)
+			comm.send(vmname,dest=CC_rank,tag=SIG_RESTORE)
+			print "waiting for cluster controller to restore VM "
 			status= MPI.Status()
 
 else:
@@ -223,7 +236,18 @@ else:
 					comm.send("SaveVM",dest=NC_rank,tag=SIG_CTRL)
 					comm.send(vmname,dest=NC_rank,tag=SIG_SAVE)
 					print "waiting for Node controller to save VM "
-					status= MPI.Status()		
+					status= MPI.Status()
+
+				elif command=="RestoreVM" :
+					print "in RestoreVM"
+					print NCVMList
+					vmname = comm.recv(source=CLC_RANK,tag=SIG_RESTORE,status=status)
+					NC_rank= NCVMList[vmname]
+					comm.send("RestoreVM",dest=NC_rank,tag=SIG_CTRL)
+					comm.send(vmname,dest=NC_rank,tag=SIG_RESTORE)
+					print "waiting for Node controller to restore VM "
+					status= MPI.Status()
+
 				elif command=="exit":
 					for nc in range(rank+1,rank+1+NODEPERCC):
 						comm.send("exit",dest=nc,tag=SIG_CTRL)
@@ -289,6 +313,10 @@ else:
 			elif command == "SaveVM" :
 				VMname=comm.recv(source=ccRank,tag=SIG_SAVE,status=status)
 				virt.SaveVM(VMname)
+
+			elif command == "RestoreVM" :
+				VMname=comm.recv(source=ccRank,tag=SIG_RESTORE,status=status)
+				virt.restoreVM()
 
 			elif command =="exit":
 				exit=True
