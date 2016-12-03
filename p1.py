@@ -9,6 +9,7 @@ import time
 
 NODEPERCC = 2
 CCPERCLC = 2
+NETWORK_THRESH = 80
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -138,6 +139,7 @@ if rank == CLC_RANK:
 		print "2. Create VM"
 		print "3. Exit"
 		print "4. Save"
+		print "7. Create Server"
 
 		#MENE OF CLC END
 		print "Enter Your choice"
@@ -195,7 +197,18 @@ if rank == CLC_RANK:
 			comm.send("SaveVM",dest=CC_rank,tag=SIG_CTRL)
 			comm.send(vmname,dest=CC_rank,tag=SIG_SAVE)
 			print "waiting for cluster controller to save VM "
-			status= MPI.Status()
+			#status= MPI.Status()
+
+		elif choice == 7:
+			CC_choice = greedyAlgo(pool_result,actdom_result,VMHDDsize)
+			status=MPI.Status()
+			if CC_choice != -1:
+				CC_choice_rank = 1+CC_choice*(NODEPERCC	+1)
+				comm.send("creatserver",dest=CC_choice_rank,tag=SIG_CTRL)
+				server_name = comm.recv(source=CC_choice_rank,sig=SIG_DATA,status=status)
+				print "Successfull in creating Demo SERVER",server_name
+			else:
+				print "Unable to chose cluster constroller for server"
 
 else:
 	if rank%(NODEPERCC+1) == 1:
@@ -203,6 +216,7 @@ else:
 		#key : NC rank ,value :list of VMS
 		NCVMList={}
 		exit=False
+		clone_done=[]
 		status = MPI.Status()
 		while not exit:
 			
@@ -254,10 +268,7 @@ else:
 
 					#Waiting for name of VM
 					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
-					
-				
 					NCVMList[virt_name]=nc_choice_rank
-
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
 				
 				elif command=="SaveVM" :
@@ -269,6 +280,30 @@ else:
 					comm.send(vmname,dest=NC_rank,tag=SIG_SAVE)
 					print "waiting for Node controller to save VM "
 					status= MPI.Status()		
+				
+				elif command=="createserver":
+					activedom_state={}
+					
+					#Assesing Current Situation of NC
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						comm.send("getlocalmemoryinfo",dest=nc,tag=SIG_CTRL)
+					
+					i=0
+					for nc in range(rank+1,rank+1+NODEPERCC):
+						result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
+						activedom_state[i] = result_nc
+						i=i+1
+
+					nc_choice = NCchoice_greedy(activedom_state)
+					nc_choice_rank = rank+1+nc_choice
+					comm.send("creatserver",dest=nc_choice_rank,tag=SIG_CTRL)
+
+					#Waiting for name of SERVER
+					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+					NCVMList[virt_name]=nc_choice_rank
+					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
+
+
 				elif command=="exit":
 					for nc in range(rank+1,rank+1+NODEPERCC):
 						comm.send("exit",dest=nc,tag=SIG_CTRL)
@@ -291,10 +326,20 @@ else:
 				for nc in activedom_state:
 					#print activedom_state
 					for dom in activedom_state[nc]:
-						#print "PRINTING STATES"
-						#print dom
-						print activedom_state[nc][dom]
-						#Check the network traffic of VMs
+						if dom.startswith("SERV"):
+							total_load = activedom_state[nc][dom]['upload_packet'] +activedom_state[nc][dom]['download_packet']
+							#print "load on ",dom," is ",total_load
+							if dom not in clone_done:
+								if total_load > NETWORK_THRESH:
+									print "overload detected cloning ",dom
+									#Asking NC to create VM migration will distribute
+									comm.send("createserver",dest=nc,tag=SIG_CTRL)
+									comm.send(dom,dest=nc,tag=SIG_DATA)
+									new_server = comm.recv(source=nc,tag=SIG_DATA)
+									clone_done.append(dom)
+									clone_done.append(new_server)
+
+
 
 				#Algo if migration is needed
 				time.sleep(0.5)
@@ -334,7 +379,12 @@ else:
 			elif command == "SaveVM" :
 				VMname=comm.recv(source=ccRank,tag=SIG_SAVE,status=status)
 				virt.SaveVM(VMname)
-
+			elif command == "clonevm":
+				dom_name = comm.recv(source=ccRank,tag=SIG_DATA,status=status)
+				virt.cloneVM(dom_name)
+			elif command == "createserver":
+				server_name = virt.createServer()
+				comm.send(server_name,dest=ccRank,tag=SIG_DATA,status=status)
 			elif command =="exit":
 				exit=True
 

@@ -234,12 +234,12 @@ def getStats(dom):
 			if 'vcpu_time' in stat: #Not available for newly created VMs
 				vcpu_time+=stat['vcpu_time']
 			
-		logging.info( "vcpu"+str(vcpu_time))
-		logging.info("cpu_time"+str(cpu_time)+"\n")
+		#logging.info( "vcpu"+str(vcpu_time))
+		#logging.info("cpu_time"+str(cpu_time)+"\n")
 		
 		if cpu_time !=0:
 			per_cpu=((vcpu_time*100)/cpu_time)
-			logging.info("CPU utilization is "+str(per_cpu)+"%")
+			#logging.info("CPU utilization is "+str(per_cpu)+"%")
 		
 																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
 		result['vcpu_time']=vcpu_time
@@ -282,7 +282,7 @@ def migrate(dom_name,host_src,host_dest):
 	return True
 
 def getLocalPoolInfo():
-	logging.info("local Pool info")
+	#logging.info("local Pool info")
 	conn = libvirt.open("qemu:///system")
 	pool = conn.storagePoolLookupByName(POOL_NAME)
 	info = pool.info()
@@ -321,12 +321,70 @@ def getActiveLocalDomainInfo():
 	ActiveDomain_IDs = conn.listDomainsID()
 	for Dom_id in ActiveDomain_IDs:
 		dom = conn.lookupByID(Dom_id)
-		logging.info("Finding info for domain"+dom.name())
+		#logging.info("Finding info for domain"+dom.name())
 		dom_stat = getStats(dom)
 		result[dom.name()]=dom_stat
 	
 	conn.close()
 	return result
+
+def createServer():
+	#Generating Mac address of the system
+	mac = [0x52,0x54,0x00] #qemu mac start
+	mac = mac+ [
+							random.randint(0x00, 0xff),
+							random.randint(0x00, 0xff),
+							random.randint(0x00, 0xff)]
+	mac=':'.join(map(lambda x: "%02x" % x, mac))
+
+	#Generating UUID for system
+	x,UUID_str = commands.getstatusoutput("uuidgen")
+	if x != 0:
+		return -1
+
+	#Generating Hard Disk
+	#HDD_name = createHDD(hd_size_gb)
+	HDD_name = DRIVE_DIR+"ubuntu_"+random.randint(0,1000)+".qcow2"
+	Command_String = "cp "+IMAGE_DIR+"ubuntu16.04.qcow2"+HDD_name
+	
+	x,out = commands.getstatusoutput(Command_String)
+	if x == -1
+		return "NOT ABLE TO CREATE"
+
+	if HDD_name == -1:
+		return -1
+
+	cur_xml = vm_xml
+
+	soup_xml = BeautifulSoup(cur_xml,"xml")
+
+	#Generating Name
+	PC_name = socket.gethostname()
+	
+	virt_name = "SERV_"+PC_name+"_"+str(random.randint(0,1000))
+	NAME = soup_xml.find('name')
+	NAME.string = virt_name
+	
+	#Setting UUID
+	UUID = soup_xml.find('uuid')
+	UUID.string = UUID_str
+
+	#Setting MAC
+	MAC = soup_xml.find('mac')
+	MAC['address']=mac
+	
+	#Setting disk location
+	Disk = soup_xml.find(device="disk")
+	Disk_source = Disk.find('source')
+	Disk_source['file'] = DRIVE_DIR+HDD_name
+
+	cur_xml = str(soup_xml)
+
+	startVM(cur_xml)																																																								
+	createNewVM.VMcount+=1;
+	return virt_name
+
+
 
 def Hello():
 	logging.info("Hello from virt")
