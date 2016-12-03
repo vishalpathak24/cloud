@@ -15,10 +15,12 @@ MC_RANK = 0
 
 
 POOL_NAME = "default-cloud"
-#BASE_DIR = '/home/admin-6019/nfs_share/'
-BASE_DIR = '/home/hdvishal/share/'
+BASE_DIR = '/home/admin-6019/nfs_share/'
+#BASE_DIR = '/home/hdvishal/share/'
 
-PRIVATE_DIR = '/home/hdvishal/'
+PRIVATE_DIR = '/home/admin-6019/'
+#PRIVATE_DIR = '/home/hdvishal/'
+
 DRIVE_DIR = PRIVATE_DIR
 
 logging.basicConfig(level=logging.DEBUG)
@@ -74,6 +76,13 @@ def attach_disk(domain, path, dev):
     dom.attachDevice(template)
     conn.close()
 
+def deattach_disk(domain, path, dev):
+    conn = libvirt.open("qemu:///system")
+    dom = conn.lookupByName(domain)
+    template = DISK_TEMPLATE.format(path=path, dev=dev)
+    dom.detachDevice(template)
+    conn.close()
+
 #CODE BEGIN
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -91,7 +100,8 @@ if rank==MC_RANK:
 		print "2. Upload File"
 		print "3. Download File"
 		print "4. Attach HDD to Domain"
-		print "5. Exit"
+		print "5. Deattach HDD from Domain"
+		print "6. Exit"
 
 		ch=input()
 
@@ -122,6 +132,11 @@ if rank==MC_RANK:
 
 
 		elif ch==5:
+			print "Deattach a device"
+			dom_name=raw_input()
+			deattach_disk(dom_name,DRIVE_DIR+HDD_name,'vdb')
+			
+		elif ch==6:
 			for sc in range(1,3):
 				comm.send("exit",dest=sc,tag=CTRL_TAG)
 			exit=True
