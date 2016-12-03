@@ -268,7 +268,8 @@ else:
 						activedom_state[i] = result_nc
 						i=i+1
 
-					nc_choice = NCchoice_greedy(activedom_state)
+					#nc_choice = NCchoice_greedy(activedom_state)
+					nc_choice = NCchoice_round_robbin()
 					nc_choice_rank = rank+1+nc_choice
 					#TODO : make signals to NC for creating vm and correspoinding actions
 					comm.send("createvm",dest=nc_choice_rank,tag=SIG_CTRL)
@@ -309,7 +310,7 @@ else:
 						activedom_state[i] = result_nc
 						i=i+1
 
-					nc_choice = NCchoice_greedy(activedom_state)
+					nc_choice = NCchoice_round_robbin(activedom_state)
 					nc_choice_rank = rank+1+nc_choice
 					logging.info("SENDING NC TO CREATE SERVER"+str(nc_choice_rank))
 					comm.send("createserver",dest=nc_choice_rank,tag=SIG_CTRL)
