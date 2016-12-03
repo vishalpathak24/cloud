@@ -51,37 +51,39 @@ pool_xml="""<pool type='dir'>
   <source>
   </source>
   <target>
-    <path>/home/dashley/images</path>
-    <permissions>
-    <mode>0755</mode>
-    <owner>-1</owner>
-    <group>-1</group>
-    </permissions>
+	<path>/home/dashley/images</path>
+	<permissions>
+	<mode>0755</mode>
+	<owner>-1</owner>
+	<group>-1</group>
+	</permissions>
   </target>
 </pool>"""
 
 DISK_TEMPLATE = \
 '''<disk type="file" device="disk">
-        <driver name="qemu" type="raw" />
-        <source file="{path}"/>
-        <target bus='virtio' dev="{dev}"/>
+		<driver name="qemu" type="raw" />
+		<source file="{path}"/>
+		<target bus='virtio' dev="{dev}"/>
 </disk>
 '''
 
 
 def attach_disk(domain, path, dev):
-    conn = libvirt.open("qemu:///system")
-    dom = conn.lookupByName(domain)
-    template = DISK_TEMPLATE.format(path=path, dev=dev)
-    dom.attachDevice(template)
-    conn.close()
+	conn = libvirt.open("qemu:///system")
+	dom = conn.lookupByName(domain)
+	template = DISK_TEMPLATE.format(path=path, dev=dev)
+	dom.attachDevice(template)
+	conn.close()
 
-def deattach_disk(domain, path, dev):
-    conn = libvirt.open("qemu:///system")
-    dom = conn.lookupByName(domain)
-    template = DISK_TEMPLATE.format(path=path, dev=dev)
-    dom.detachDevice(template)
-    conn.close()
+def deattach_disk(domain, path, dev,hd_name):
+	conn = libvirt.open("qemu:///system")
+	dom = conn.lookupByName(domain)
+	template = DISK_TEMPLATE.format(path=path, dev=dev)
+	dom.detachDevice(template)
+	conn.close()
+	
+	return 0
 
 #CODE BEGIN
 comm = MPI.COMM_WORLD
@@ -134,8 +136,14 @@ if rank==MC_RANK:
 		elif ch==5:
 			print "Deattach a device"
 			dom_name=raw_input()
-			deattach_disk(dom_name,DRIVE_DIR+HDD_name,'vdb')
-			
+			deattach_disk(dom_name,DRIVE_DIR+HDD_name,'vdb',HDD_name)
+			Command_String="cp "+PRIVATE_DIR+HDD_name+" "+BASE_DIR
+			x,y = commands.getstatusoutput(Command_String)
+			for sc in range(1,3):
+				comm.send("copy_hdd",dest=sc,tag=CTRL_TAG)
+				comm.send(HDD_name,dest=sc,tag=DATA_TAG)
+			for sc in range(1,3):
+				comm.recv(source=sc,tag=DATA_TAG,status=status)
 		elif ch==6:
 			for sc in range(1,3):
 				comm.send("exit",dest=sc,tag=CTRL_TAG)
@@ -168,8 +176,10 @@ else:
 				index=0
 			comm.send(HDD_Name,dest=MC_RANK,tag=DATA_TAG)
 
-		elif command == "uploadFile":
-			logging.info("Uploading")
-		
+		elif command == "copy_hdd":
+			HDD_name=comm.recv(source=MC_RANK,tag=DATA_TAG,status=status)
+			Command_String="cp "+BASE_DIR+HDD_name+" "+PRIVATE_DIR
+			x,y = commands.getstatusoutput(Command_String)
+			comm.send("DONE",dest=MC_RANK,tag=DATA_TAG)
 		elif command == "exit":
 			exit=True
