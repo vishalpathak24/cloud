@@ -21,6 +21,7 @@ CLC_RANK = 0
 SIG_CTRL = 0
 SIG_DATA = 1
 SIG_SAVE = 2
+SIG_RESTORE=3
 
 #CODE BEGIN
 comm = MPI.COMM_WORLD
@@ -139,6 +140,7 @@ if rank == CLC_RANK:
 		print "2. Create VM"
 		print "3. Exit"
 		print "4. Save"
+		print "5. Restore"
 		print "7. Create Server"
 
 		#MENE OF CLC END
@@ -211,6 +213,17 @@ if rank == CLC_RANK:
 				print "Successfull in creating Demo SERVER",server_name
 			else:
 				print "Unable to chose cluster constroller for server"
+
+		elif choice == 5:
+			print CCnames
+			print "Enter the Cluster controller rank containing your VM " 
+			CC_rank = input()
+			print "Enter the vmname"
+			vmname = raw_input()
+			comm.send("RestoreVM",dest=CC_rank,tag=SIG_CTRL)
+			comm.send(vmname,dest=CC_rank,tag=SIG_RESTORE)
+			print "waiting for cluster controller to restore VM "
+			status= MPI.Status()
 
 else:
 	if rank%(NODEPERCC+1) == 1:
@@ -307,6 +320,17 @@ else:
 					logging.info("WAITING TO CREATE"+str(nc_choice_rank))
 					NCVMList[virt_name]=nc_choice_rank
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
+					
+
+				elif command=="RestoreVM" :
+					print "in RestoreVM"
+					print NCVMList
+					vmname = comm.recv(source=CLC_RANK,tag=SIG_RESTORE,status=status)
+					NC_rank= NCVMList[vmname]
+					comm.send("RestoreVM",dest=NC_rank,tag=SIG_CTRL)
+					comm.send(vmname,dest=NC_rank,tag=SIG_RESTORE)
+					print "waiting for Node controller to restore VM "
+					status= MPI.Status()
 
 
 				elif command=="exit":
@@ -392,6 +416,11 @@ else:
 				server_name = virt.createServer()
 				logging.info("CREATING SERVER DONE")
 				comm.send(server_name,dest=ccRank,tag=SIG_DATA)
+
+			elif command == "RestoreVM" :
+				VMname=comm.recv(source=ccRank,tag=SIG_RESTORE,status=status)
+				virt.restoreVM()
+				
 			elif command =="exit":
 				exit=True
 

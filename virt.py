@@ -137,8 +137,11 @@ def startVM(xml):
 	if conn == None:
 		logging.info("Unable to open hypervisor")
 		sys.exit(1)
-	new_dom = conn.createXML(xml,0)
+	#new_dom = conn.createXML(xml,0)
+	new_dom = conn.defineXML(xml)
+	new_dom.create()
 	conn.close()
+	return
 
 def SaveVM(VMname) :
 	conn = libvirt.open('qemu:///system')
@@ -160,8 +163,24 @@ def SaveVM(VMname) :
 		print('Unable to save guest to '+str(filename))
 	print('Guest state saved to '+str(filename))
 	conn.close()
-	exit(0)
+	return
 
+def restoreVM() :
+	conn = libvirt.open('qemu:///system')
+	if conn == None:
+		print('Failed to open connection to qemu:///system')
+		exit(1)
+	iD = conn.restore(filename)
+	if iD < 0:
+		print('Unable to restore guest from ')
+		exit(1)
+	dom = conn.lookupByID(iD);
+	if dom == None:
+		print('Cannot find guest that was restored')
+		exit(1)
+	print('Guest state restored from '+filename)
+	conn.close()
+	return
 
 def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 	#Generating Mac address of the system
