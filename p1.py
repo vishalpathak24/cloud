@@ -200,12 +200,14 @@ if rank == CLC_RANK:
 			#status= MPI.Status()
 
 		elif choice == 7:
-			CC_choice = greedyAlgo(pool_result,actdom_result,VMHDDsize)
+			CC_choice = greedyAlgo(pool_result,actdom_result,16.1)
 			status=MPI.Status()
 			if CC_choice != -1:
 				CC_choice_rank = 1+CC_choice*(NODEPERCC	+1)
-				comm.send("creatserver",dest=CC_choice_rank,tag=SIG_CTRL)
-				server_name = comm.recv(source=CC_choice_rank,sig=SIG_DATA,status=status)
+				print "creating server...."+str(CC_choice_rank)
+				comm.send("createserver",dest=CC_choice_rank,tag=SIG_CTRL)
+				print "Waiting for Response"
+				server_name = comm.recv(source=CC_choice_rank,tag=SIG_DATA,status=status)
 				print "Successfull in creating Demo SERVER",server_name
 			else:
 				print "Unable to chose cluster constroller for server"
@@ -296,10 +298,13 @@ else:
 
 					nc_choice = NCchoice_greedy(activedom_state)
 					nc_choice_rank = rank+1+nc_choice
-					comm.send("creatserver",dest=nc_choice_rank,tag=SIG_CTRL)
+					logging.info("SENDING NC TO CREATE SERVER"+str(nc_choice_rank))
+					comm.send("createserver",dest=nc_choice_rank,tag=SIG_CTRL)
 
 					#Waiting for name of SERVER
+					
 					virt_name=comm.recv(source=nc_choice_rank,tag=SIG_DATA,status=status)
+					logging.info("WAITING TO CREATE"+str(nc_choice_rank))
 					NCVMList[virt_name]=nc_choice_rank
 					comm.send(virt_name,dest=CLC_RANK,tag=SIG_DATA)
 
@@ -383,8 +388,10 @@ else:
 				dom_name = comm.recv(source=ccRank,tag=SIG_DATA,status=status)
 				virt.cloneVM(dom_name)
 			elif command == "createserver":
+				logging.info("CREATING SERVER")
 				server_name = virt.createServer()
-				comm.send(server_name,dest=ccRank,tag=SIG_DATA,status=status)
+				logging.info("CREATING SERVER DONE")
+				comm.send(server_name,dest=ccRank,tag=SIG_DATA)
 			elif command =="exit":
 				exit=True
 
