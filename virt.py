@@ -174,7 +174,7 @@ def restoreVM() :
 	if iD < 0:
 		print('Unable to restore guest from ')
 		exit(1)
-	dom = conn.lookupByID(id);
+	dom = conn.lookupByID(iD);
 	if dom == None:
 		print('Cannot find guest that was restored')
 		exit(1)
