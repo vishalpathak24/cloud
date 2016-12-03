@@ -9,7 +9,7 @@ import time
 
 NODEPERCC = 2
 CCPERCLC = 2
-NETWORK_THRESH = 80
+NETWORK_THRESH = 55000
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -310,7 +310,7 @@ else:
 						activedom_state[i] = result_nc
 						i=i+1
 
-					nc_choice = NCchoice_round_robbin(activedom_state)
+					nc_choice = NCchoice_round_robbin()
 					nc_choice_rank = rank+1+nc_choice
 					logging.info("SENDING NC TO CREATE SERVER"+str(nc_choice_rank))
 					comm.send("createserver",dest=nc_choice_rank,tag=SIG_CTRL)
@@ -346,11 +346,11 @@ else:
 					comm.send("getactivedomaininfo",dest=nc,tag=SIG_CTRL)
 				activedom_state={}
 				
-				i=0
+				
 				for nc in range(rank+1,rank+1+NODEPERCC):
 					result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
-					activedom_state[i] = result_nc
-					i=i+1
+					activedom_state[nc] = result_nc
+					
 
 				#Algo for finding if VM-Scaling is needed
 				for nc in activedom_state:
@@ -361,11 +361,11 @@ else:
 							#print "load on ",dom," is ",total_load
 							if dom not in clone_done:
 								if total_load > NETWORK_THRESH:
-									print "overload detected cloning ",dom
+									print " overload detected cloning ",dom
 									#Asking NC to create VM migration will distribute
-									comm.send("createserver",dest=nc,tag=SIG_CTRL)
-									comm.send(dom,dest=nc,tag=SIG_DATA)
-									new_server = comm.recv(source=nc,tag=SIG_DATA)
+									new_nc = rank+1+(nc+rank)%NODEPERCC
+									comm.send("createserver",dest=new_nc,tag=SIG_CTRL)
+									new_server = comm.recv(source=new_nc,tag=SIG_DATA)
 									clone_done.append(dom)
 									clone_done.append(new_server)
 

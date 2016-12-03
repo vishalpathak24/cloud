@@ -20,22 +20,22 @@ USER_NAME = "admin-6019"
 POOL_NAME = "default-cloud"
 #POOL_NAME = "default"
 
-#BASE_DIR = '/home/admin-6019/nfs_share/'
-BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
+BASE_DIR = '/home/admin-6019/nfs_share/'
+#BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
 filename=BASE_DIR+'image.img'
-#IMAGES_DIR = BASE_DIR+'images/'
+IMAGES_DIR ='/home/admin-6019/nfs_share/pool/'
 
 #DRIVE_DIR = BASE_DIR+'drives/'
 
 #ISO_DIR = BASE_DIR+'iso/'
 
-IMAGES_DIR = BASE_DIR
+#IMAGES_DIR = BASE_DIR
 
 DRIVE_DIR = BASE_DIR
 
-#ISO_DIR = '/home/admin-6019/nfs_share/'
-ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
+ISO_DIR = '/home/admin-6019/nfs_share/'
+#ISO_DIR = '/media/vishalpathak/HD-E11/softwares/'
 
 #Node specific variables
 VMcount = 0
@@ -371,13 +371,16 @@ def createServer():
 	
 	###################CHANGE HERE FOR ACTUAL COPY##################
 	#HDD_name = DRIVE_DIR+"ubuntu_"+str(random.randint(0,1000))+".qcow2"
-	HDD_name = DRIVE_DIR+"ubuntu_"+str(563)+".qcow2"
+	HDD_name = DRIVE_DIR+"ubuntu_"+str(730)+".qcow2"
 	#Command_String = "cp "+IMAGES_DIR+"ubuntu16.04.qcow2 "+HDD_name
-	
+	#print "copying from "+Command_String
 	#x,out = commands.getstatusoutput(Command_String)
 	#if x == -1:
 	#	return "NOT ABLE TO CREATE"
-
+	Command_String = "chmod 777 "+HDD_name
+	x,out = commands.getstatusoutput(Command_String)
+	if x == -1:
+		return "NOT ABLE TO CREATE"
 	#############################################
 	if HDD_name == -1:
 		return -1
