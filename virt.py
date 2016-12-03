@@ -12,7 +12,8 @@ from xml.etree import ElementTree
 #command to create a raw file dd if=/dev/zero of=ubuntu16-04.raw bs=1 count=1 seek=15G
 # uuidgen to genrate UUID 
 
-filename='/home/admin-6019/Documents/image.img'
+#filename='/home/admin-6019/Documents/image.img'
+
 #Constants
 
 USER_NAME = "admin-6019"
@@ -22,6 +23,7 @@ POOL_NAME = "default-cloud"
 #BASE_DIR = '/home/admin-6019/nfs_share/'
 BASE_DIR = '/media/vishalpathak/HD-E11/acedemics/CloudComputing/Assg/'
 
+filename=BASE_DIR+'image.img'
 #IMAGES_DIR = BASE_DIR+'images/'
 
 #DRIVE_DIR = BASE_DIR+'drives/'
@@ -174,10 +176,10 @@ def restoreVM() :
 	if iD < 0:
 		print('Unable to restore guest from ')
 		exit(1)
-	dom = conn.lookupByID(iD);
-	if dom == None:
-		print('Cannot find guest that was restored')
-		exit(1)
+	#dom = conn.lookupByID(iD);
+	#if dom == None:
+	#	print('Cannot find guest that was restored')
+	#	exit(1)
 	print('Guest state restored from '+filename)
 	conn.close()
 	return
@@ -242,43 +244,45 @@ def createNewVM(hd_size_gb,ram_size_gb,n_cores):
 
 def getStats(dom):
 	#getting CPU Stats
-	stats = dom.getCPUStats(False)
-	result={}
-	if len(stats) > 0:
-		vcpu_time = 0
-		cpu_time = 0
-		
-		for stat in stats:
-			cpu_time+=stat['cpu_time']
-			if 'vcpu_time' in stat: #Not available for newly created VMs
-				vcpu_time+=stat['vcpu_time']
+	try:
+		stats = dom.getCPUStats(False)
+		result={}
+		if len(stats) > 0:
+			vcpu_time = 0
+			cpu_time = 0
 			
-		#logging.info( "vcpu"+str(vcpu_time))
-		#logging.info("cpu_time"+str(cpu_time)+"\n")
-		
-		if cpu_time !=0:
-			per_cpu=((vcpu_time*100)/cpu_time)
-			#logging.info("CPU utilization is "+str(per_cpu)+"%")
-		
-																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																			
-		result['vcpu_time']=vcpu_time
-		result['cpu_time']=cpu_time
+			for stat in stats:
+				cpu_time+=stat['cpu_time']
+				if 'vcpu_time' in stat: #Not available for newly created VMs
+					vcpu_time+=stat['vcpu_time']
+				
+			#logging.info( "vcpu"+str(vcpu_time))
+			#logging.info("cpu_time"+str(cpu_time)+"\n")
+			
+			if cpu_time !=0:
+				per_cpu=((vcpu_time*100)/cpu_time)
+				#logging.info("CPU utilization is "+str(per_cpu)+"%")
+			
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																				
+			result['vcpu_time']=vcpu_time
+			result['cpu_time']=cpu_time
 
-		# Memory stats
-		memory = dom.memoryStats()
-		result['actual_ram'] = memory['actual']
-		result['used_ram'] = memory['rss']
+			# Memory stats
+			memory = dom.memoryStats()
+			result['actual_ram'] = memory['actual']
+			result['used_ram'] = memory['rss']
 
-		#Network load
-		tree = ElementTree.fromstring(dom.XMLDesc())
-		iface = tree.find('devices/interface/target').get('dev')
-		NL_1 = dom.interfaceStats(iface)
-		time.sleep(0.5)
-		NL_2 = dom.interfaceStats(iface)
-		result['upload_packet'] = NL_2[4] - NL_1[4]
-		result['download_packet'] = NL_2[0] - NL_1[0]
-	else:
+			#Network load
+			tree = ElementTree.fromstring(dom.XMLDesc())
+			iface = tree.find('devices/interface/target').get('dev')
+			NL_1 = dom.interfaceStats(iface)
+			time.sleep(0.5)
+			NL_2 = dom.interfaceStats(iface)
+			result['upload_packet'] = NL_2[4] - NL_1[4]
+			result['download_packet'] = NL_2[0] - NL_1[0]
+	except libvirt.libvirtError:
 		#Domain newly created unable to get stats for now																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																
+		logging.info("Execption Caught")
 		result['vcpu_time']=0
 		result['cpu_time']=0
 		result['actual_ram'] = 0
