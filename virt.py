@@ -177,7 +177,7 @@ def restoreVM(VMname) :
 	iD = conn.restore(filename)
 	Command_String="rm "+filename
 	x,y = commands.getstatusoutput(Command_String)
-	
+
 	if iD < 0:
 		print('Unable to restore guest from ')
 		exit(1)
@@ -328,7 +328,7 @@ def getLocalDomainInfo():
 	for Dom_id in ActiveDomain_IDs:
 		dom = conn.lookupByID(Dom_id)
 		dom_stat = getStats(dom)
-		result[dom.name()+"--Active"]=dom_stat
+		result[dom.name()]=dom_stat
 
 	conn.close()
 	return result

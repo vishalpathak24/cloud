@@ -154,12 +154,16 @@ if rank == CLC_RANK:
 			for cc in CC_ranks:
 				comm.send("getdomaininfo",dest=cc,tag=SIG_CTRL)
 			i=0
+			
 			for cc in CC_ranks:
 				status = MPI.Status()
 				logging.info("Sent Data")
 				actdom_result[i]=comm.recv(source=cc,tag=SIG_CTRL,status=status)
 				i=i+1
 				print "IN CC ",i,actdom_result[i-1]
+				for dom in actdom_result[i-1]:
+					CCnames[dom]=cc
+
 		
 		elif choice == 2:
 			print "Enter the size of disk you want in GB"
@@ -257,6 +261,8 @@ else:
 						result_nc = comm.recv(source=nc,tag=SIG_CTRL,status=status)
 						for dom in result_nc:
 							result[dom]=result_nc[dom]
+							NCVMList[dom]=nc
+					print rank,"my NCVM list is",NCVMList
 					comm.send(result,dest=CLC_RANK,tag=SIG_CTRL)		
 
 				elif command=="createvm":
