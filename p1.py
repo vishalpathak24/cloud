@@ -94,7 +94,8 @@ def NCchoice_round_robbin():
 		"""
 		if not hasattr(NCchoice_round_robbin, "count"):
 			NCchoice_round_robbin.count = 0  # it doesn't exist yet, so initialize it
-		NCchoice_round_robbin.count += 1
+		else:
+			NCchoice_round_robbin.count += 1
 		print(NCchoice_round_robbin.count)		
 		
 		
@@ -138,10 +139,11 @@ if rank == CLC_RANK:
 		#MENU OF CLC
 		print "1. Print Domains"
 		print "2. Create VM"
-		print "3. Exit"
+		print "3. Create Server"
 		print "4. Save"
-		print "5. Restore"
-		print "7. Create Server"
+		print "5. Restore"	
+		print "6. Exit"
+
 
 		#MENE OF CLC END
 		print "Enter Your choice"
@@ -185,23 +187,12 @@ if rank == CLC_RANK:
 			else:
 				logging.info("Unable to find CC for given choice")
 
-		elif choice == 3:
+		elif choice == 6:
 			for cc in CC_ranks:
 				comm.send("exit",dest=cc,tag=SIG_CTRL)
 			exit=True
 		
-		elif choice == 4:
-			print CCnames
-			print "Enter the Cluster controller rank containing your VM " 
-			CC_rank = input()
-			print "Enter the vmname"
-			vmname = raw_input()
-			comm.send("SaveVM",dest=CC_rank,tag=SIG_CTRL)
-			comm.send(vmname,dest=CC_rank,tag=SIG_SAVE)
-			print "waiting for cluster controller to save VM "
-			#status= MPI.Status()
-
-		elif choice == 7:
+		elif choice == 3:
 			CC_choice = greedyAlgo(pool_result,actdom_result,16.1)
 			status=MPI.Status()
 			if CC_choice != -1:
@@ -213,6 +204,19 @@ if rank == CLC_RANK:
 				print "Successfull in creating Demo SERVER",server_name
 			else:
 				print "Unable to chose cluster constroller for server"
+		
+
+		elif choice == 4:
+			print CCnames
+			print "Enter the Cluster controller rank containing your VM " 
+			CC_rank = input()
+			print "Enter the vmname"
+			vmname = raw_input()
+			comm.send("SaveVM",dest=CC_rank,tag=SIG_CTRL)
+			comm.send(vmname,dest=CC_rank,tag=SIG_SAVE)
+			print "waiting for cluster controller to save VM "
+			#status= MPI.Status()
+
 
 		elif choice == 5:
 			print CCnames
@@ -420,7 +424,7 @@ else:
 
 			elif command == "RestoreVM" :
 				VMname=comm.recv(source=ccRank,tag=SIG_RESTORE,status=status)
-				virt.restoreVM()
+				virt.restoreVM(VMname)
 				
 			elif command =="exit":
 				exit=True

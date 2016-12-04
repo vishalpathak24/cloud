@@ -161,18 +161,23 @@ def SaveVM(VMname) :
 	#if info.state == VIR_DOMAIN_SHUTOFF:
 	#	print('Not saving guest that is not running')
 	#	exit(1)
+	filename = BASE_DIR+VMname+".img"
 	if dom.save(filename) < 0:
 		print('Unable to save guest to '+str(filename))
 	print('Guest state saved to '+str(filename))
 	conn.close()
 	return
 
-def restoreVM() :
+def restoreVM(VMname) :
+	filename = BASE_DIR+VMname+".img"
 	conn = libvirt.open('qemu:///system')
 	if conn == None:
 		print('Failed to open connection to qemu:///system')
 		exit(1)
 	iD = conn.restore(filename)
+	Command_String="rm "+filename
+	x,y = commands.getstatusoutput(Command_String)
+	
 	if iD < 0:
 		print('Unable to restore guest from ')
 		exit(1)
